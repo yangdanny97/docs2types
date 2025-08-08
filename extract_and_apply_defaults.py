@@ -3,11 +3,10 @@ import os
 import sys
 import importlib
 import inspect
-import re
 import libcst as cst
+from libcst import Param
 
-root = ""
-defaults = set()
+defaults: set[str] = set()
 
 # LibCST transformation that adds a default value to a given parameter in a given file
 class ParameterDefaultAdder(cst.CSTTransformer):
@@ -21,14 +20,19 @@ class ParameterDefaultAdder(cst.CSTTransformer):
             self.func_name = func_or_method
         self.inside_target_class = self.class_name is None  # True for top-level functions
 
-    def visit_ClassDef(self, node: cst.ClassDef):
+    def visit_ClassDef(self, node: cst.ClassDef) -> None:
         if self.class_name and node.name.value == self.class_name:
             self.inside_target_class = True
-
-    def leave_ClassDef(self, original_node, node: cst.ClassDef):
-        if self.class_name and node.name.value == self.class_name:
+        elif not self.class_name:
             self.inside_target_class = False
-        return node
+
+    def leave_ClassDef(self, original_node: cst.ClassDef, updated_node: cst.ClassDef) -> cst.ClassDef:
+        if self.class_name and updated_node.name.value == self.class_name:
+            self.inside_target_class = False
+        elif not self.class_name:
+            self.inside_target_class = True
+        
+        return updated_node
 
     def leave_FunctionDef(
         self, original_node: cst.FunctionDef, updated_node: cst.FunctionDef
@@ -37,7 +41,7 @@ class ParameterDefaultAdder(cst.CSTTransformer):
             return updated_node
         if original_node.name.value != self.func_name:
             return updated_node
-        new_params = []
+        new_params: list[Param] = []
         for param in updated_node.params.params:
             if param.name.value == self.param_name:
                 new_param = param.with_changes(default=self.default)
@@ -50,7 +54,7 @@ class ParameterDefaultAdder(cst.CSTTransformer):
 
 
 # This function applies a type annotation to a parameter
-def add_default_to_parameter(filename, function, parameter, annotation) -> None:
+def add_default_to_parameter(filename: str, function: str, parameter: str, annotation: str) -> None:
     with open(filename, "r") as f:
         code = f.read()
     module = cst.parse_module(code)
@@ -86,10 +90,10 @@ def get_module_path(root: str, file_path: str) -> str:
 
 
 # Get any parameters from the stub that have a default of `...`
-def get_ellipsis_params(func_def: ast.FunctionDef):
+def get_ellipsis_params(func_def: ast.FunctionDef) -> list[str]:
     args = func_def.args
     num_defaults = len(args.defaults)
-    ellipsis_params = []
+    ellipsis_params: list[str] = []
 
     # Defaults align to the last N positional args
     for arg, default in zip(args.args[-num_defaults:], args.defaults):
@@ -134,7 +138,7 @@ def extract_param_default(source: str, param: str) -> str | None:
 
 
 # For any parameters in the stub with default `...`, try to guess the type from the docstring
-def process_function(module: str, class_name: str | None, func_node: ast.FunctionDef, pkg_name) -> None:
+def process_function(module: str, class_name: str | None, func_node: ast.FunctionDef, pkg_name: str, root: str) -> None:
     if func_node.name.startswith('__') and func_node.name.endswith('__'):
         return
     func_name = f"{class_name}.{func_node.name}" if class_name else func_node.name
@@ -162,7 +166,7 @@ def is_overload(func: ast.FunctionDef) -> bool:
     return False
 
 
-def process_file(root: str, file_path: str, pkg_name) -> None:
+def process_file(root: str, file_path: str, pkg_name: str) -> None:
     module = get_module_path(root, file_path)
     with open(file_path, "r", encoding="utf-8") as f:
         try:
@@ -173,13 +177,13 @@ def process_file(root: str, file_path: str, pkg_name) -> None:
         if isinstance(node, ast.FunctionDef):
             if is_overload(node):
                 continue
-            process_function(module, None, node, pkg_name)
+            process_function(module, None, node, pkg_name, root)
         elif isinstance(node, ast.ClassDef):
             for item in node.body:
                 if isinstance(item, ast.FunctionDef):
                     if is_overload(item):
                         continue
-                    process_function(module, node.name, item, pkg_name)
+                    process_function(module, node.name, item, pkg_name, root)
 
 
 def walk_directory(root: str, pkg_name: str) -> None:
