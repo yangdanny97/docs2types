@@ -5,6 +5,8 @@ Docs2types contains two utilities for increasing quality and type coverage of Py
 1. `extract_and_apply_annotations`: semi-automated way to parse types from docstrings and apply them directly to stubs.
 2. `extract_and_apply_defaults`: fully-automated way to extract parameter default values from functions and apply them directly to stubs.
 
+This is similar to [docs2stubs](https://github.com/gramster/docs2stubs), but that tool generates stubs from the docs, while this tool applies additional types to existing stubs. In theory these two tools could work pretty well together, since the LLM should be able to infer more types (for example, in cases when the docstring isn't just a class name).
+
 ## extract_and_apply_annotations
 
 This is a semi-automated way to add parameter defaults to stubs. It leverages LLMs that is 1. very fast and 2. deterministic across runs. Since the LLM is only used to generate a mapping of docstring types to type annotations, it should be a little bit easier to review.
