@@ -1,4 +1,5 @@
 import ast
+import argparse
 import os
 import sys
 import importlib
@@ -193,10 +194,9 @@ def walk_directory(root: str, pkg_name: str) -> None:
                 process_file(root, os.path.join(dirpath, filename), pkg_name)
 
 
-# Instructions:
-# 1. clone pandas-stubs
-# 2. install pandas
-# 3. python3 extract_and_apply_defaults.py ./pandas-stubs/pandas-stubs pandas
 if __name__ == "__main__":
-    root = sys.argv[1]
-    walk_directory(sys.argv[1], sys.argv[2])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("stubs", help="Stubs root directory")
+    parser.add_argument("package", help="Runtime package")
+    args = parser.parse_args()
+    walk_directory(args.stubs, args.package)

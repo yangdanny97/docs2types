@@ -5,6 +5,7 @@ import importlib
 import inspect
 import re
 import libcst as cst
+import argparse
 
 
 root = ""
@@ -256,6 +257,8 @@ class MethodAnnotator(cst.CSTTransformer):
         )
 
 # This function applies a type annotation to a parameter
+
+
 def annotate_parameter(filename, function, parameter, annotation) -> None:
     with open(filename, "r") as f:
         code = f.read()
@@ -364,7 +367,7 @@ def get_module_path(root: str, file_path: str) -> str:
     return no_ext.replace(os.path.sep, '.')
 
 
-def process_function(module: str, class_name: str | None, func_node: ast.FunctionDef, pkg_name) -> None:
+def process_function(module: str, class_name: str | None, func_node: ast.FunctionDef, pkg_name: str, show_types: bool) -> None:
     if func_node.name.startswith('__') and func_node.name.endswith('__'):
         return
     func_name = f"{class_name}.{func_node.name}" if class_name else func_node.name
@@ -380,22 +383,24 @@ def process_function(module: str, class_name: str | None, func_node: ast.Functio
             arg_type = extract_param_type(docstring, arg.arg)
             if arg_type is None:
                 continue
+            types.add(arg_type)
             arg_type = filter_type_annotation(arg_type)
             if arg_type is None:
                 continue
-            annotate_parameter(module_path, func_name, arg.arg, arg_type)
-            types.add(arg_type)
+            if not show_types:
+                annotate_parameter(module_path, func_name, arg.arg, arg_type)
     if func_node.returns is None:
         ret_type = extract_return_type(docstring)
         if ret_type is None:
             return
         if " : " in ret_type:
             ret_type = ret_type.split(" : ")[-1]
+        types.add(ret_type)
         ret_type = filter_type_annotation(ret_type)
         if ret_type is None:
             return
-        annotate_return(module_path, func_name, ret_type)
-        types.add(ret_type)
+        if not show_types:
+            annotate_return(module_path, func_name, ret_type)
 
 
 # Is this function decorated w/ @overload
@@ -408,7 +413,7 @@ def is_overload(func: ast.FunctionDef) -> bool:
     return False
 
 
-def process_file(root: str, file_path: str, pkg_name) -> None:
+def process_file(root: str, file_path: str, pkg_name: str, show_types: bool) -> None:
     module = get_module_path(root, file_path)
     with open(file_path, "r", encoding="utf-8") as f:
         try:
@@ -419,26 +424,32 @@ def process_file(root: str, file_path: str, pkg_name) -> None:
         if isinstance(node, ast.FunctionDef):
             if is_overload(node):
                 continue
-            process_function(module, None, node, pkg_name)
+            process_function(module, None, node, pkg_name, show_types)
         elif isinstance(node, ast.ClassDef):
             for item in node.body:
                 if isinstance(item, ast.FunctionDef):
                     if is_overload(item):
                         continue
-                    process_function(module, node.name, item, pkg_name)
+                    process_function(module, node.name, item,
+                                     pkg_name, show_types)
 
 
-def walk_directory(root: str, pkg_name: str) -> None:
+def walk_directory(root: str, pkg_name: str, show_types: bool) -> None:
     for dirpath, _, filenames in os.walk(root):
         for filename in filenames:
             if filename.endswith(".pyi"):
-                process_file(root, os.path.join(dirpath, filename), pkg_name)
+                process_file(root, os.path.join(
+                    dirpath, filename), pkg_name, show_types)
 
 
-# Instructions:
-# 1. clone pandas-stubs
-# 2. install pandas
-# 3. python3 extract_and_apply_annotations.py ./pandas-stubs/pandas-stubs pandas
 if __name__ == "__main__":
-    root = sys.argv[1]
-    walk_directory(sys.argv[1], sys.argv[2])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("stubs", help="Stubs root directory")
+    parser.add_argument("package", help="Runtime package")
+    parser.add_argument("--show-types", action="store_true")
+    args = parser.parse_args()
+    root = args.stubs
+    walk_directory(args.stubs, args.package, args.show_types)
+    if args.show_types:
+        for t in types:
+            print(t)
