@@ -39,3 +39,4 @@ While mypy's [stubgen](https://mypy.readthedocs.io/en/stable/stubgen.html) alrea
 - We skip any functions that are overloaded in the stubs, since docstrings usually do not give any indication of which overloads carry which types
 - The tool generally cannot add `Self`-typed return annotations
 - `extract_and_apply_defaults` can add default values that are incompatible with existing annotations in the stubs (for example, if the annotation isn't an optional type but the default at runtime is actually `None` - typically this means that we've found an issue with the annotation and we can fix it)
+- Each type is looked at in isolation, so we can't infer anything fancy like generics, and based on experience many extracted generic types do not have type arguments
