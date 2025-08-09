@@ -9,7 +9,7 @@ This is similar to [docs2stubs](https://github.com/gramster/docs2stubs), but tha
 
 ## extract_and_apply_annotations
 
-This is a semi-automated way to add parameter defaults to stubs. It leverages LLMs that is 1. very fast and 2. deterministic across runs. Since the LLM is only used to generate a mapping of docstring types to type annotations, it should be a little bit easier to review.
+This is a semi-automated way to add parameter defaults to stubs. It leverages LLMs in a way that 1. doesn't make the script super slow and 2. is deterministic across runs. Since the LLM is only used to generate a mapping of docstring types to type annotations, it should be a little bit easier to review.
 
 ### Example with pandas-stubs
 
