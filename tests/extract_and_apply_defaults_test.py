@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import shutil
 
-TEST_CASES = list((Path("tests") / "test_cases").glob("*"))
+TEST_CASES = list((Path("tests") / "test_cases").glob("case*"))
 
 
 @pytest.mark.parametrize("test_case", TEST_CASES)
