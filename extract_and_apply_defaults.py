@@ -117,6 +117,13 @@ def get_param_default_from_source(source: str ,func_def: ast.FunctionDef, name: 
         if arg.arg == name:
             if isinstance(default, ast.Constant):
                 return ast.get_source_segment(source, default)
+            if (
+                isinstance(default, ast.UnaryOp)
+                and isinstance(default.op, ast.USub)
+                and isinstance(default.operand, ast.Constant)
+            ):
+                # Handle case when default is negative number, e.g. `axis=-1`.
+                return f'-{ast.get_source_segment(source, default.operand)}'
             return None
     # Similarly check kwonlyargs
     for kwarg, default in zip(args.kwonlyargs, args.kw_defaults):
