@@ -5,3 +5,5 @@ class Bar:
 def foo(a = None):
     return None
 
+def bar(a = -1):
+    return a
