@@ -1,41 +1,22 @@
 from extract_and_apply_defaults import process_file
 from pathlib import Path
+import pytest
+import shutil
 
-def test_rewrite(tmp_path: Path) -> None:
-    """Test that if a file has both `foo` and `Bar.foo`, then overwrites
-    indeded for `foo` don't also get applied to `Bar.foo`.
-    """ 
-    content = (
-        "from typing import overload\n"
-        "\n"
-        "class Bar:\n"
-        "    @overload\n"
-        "    def foo(self, a: str) -> str: ...\n"
-        "    @overload\n"
-        "    def foo(self, a: int) -> int: ...\n"
-        "\n"
-        "def foo(a=...) -> None:\n"
-        "    ...\n"
-    )
-    root = (tmp_path / 'test_package')
+TEST_CASES = list((Path("tests") / "test_cases").glob("*"))
+
+
+@pytest.mark.parametrize("test_case", TEST_CASES)
+def test_rewrites(tmp_path: Path, test_case: Path) -> None:
+    root = tmp_path / "test_package"
     root.mkdir()
-    file = (root / '__init__.pyi')
-    file.write_text(content)
-    process_file(str(root), str(file), 'test_package')
+    file_path = root / "__init__.pyi"
+    stub, expected_path = list(test_case.glob("*"))
+    shutil.copy2(stub, file_path)
+    process_file(str(root), str(file_path), "test_package")
 
-    with open(file) as fd:
+    with open(file_path) as fd:
         result = fd.read()
-    
-    expected = (
-        "from typing import overload\n"
-        "\n"
-        "class Bar:\n"
-        "    @overload\n"
-        "    def foo(self, a: str) -> str: ...\n"
-        "    @overload\n"
-        "    def foo(self, a: int) -> int: ...\n"
-        "\n"
-        "def foo(a=None) -> None:\n"
-        "    ...\n"
-    )
+    expected = expected_path.read_text()
+
     assert result == expected

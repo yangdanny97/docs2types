@@ -44,7 +44,7 @@ class ParameterDefaultAdder(cst.CSTTransformer):
             return updated_node
         new_params: list[Param] = []
         for param in updated_node.params.params:
-            if param.name.value == self.param_name:
+            if param.name.value == self.param_name and param.default:
                 new_param = param.with_changes(default=self.default)
                 new_params.append(new_param)
             else:
@@ -158,15 +158,6 @@ def process_function(module: str, class_name: str | None, func_node: ast.Functio
         defaults.add(arg_default)
 
 
-def is_overload(func: ast.FunctionDef) -> bool:
-    for decorator in func.decorator_list:
-        if isinstance(decorator, ast.Name) and decorator.id == 'overload':
-            return True
-        if isinstance(decorator, ast.Attribute) and decorator.attr == 'overload':
-            return True
-    return False
-
-
 def process_file(root: str, file_path: str, pkg_name: str) -> None:
     module = get_module_path(root, file_path)
     with open(file_path, "r", encoding="utf-8") as f:
@@ -176,14 +167,10 @@ def process_file(root: str, file_path: str, pkg_name: str) -> None:
             return
     for node in tree.body:
         if isinstance(node, ast.FunctionDef):
-            if is_overload(node):
-                continue
             process_function(module, None, node, pkg_name, root)
         elif isinstance(node, ast.ClassDef):
             for item in node.body:
                 if isinstance(item, ast.FunctionDef):
-                    if is_overload(item):
-                        continue
                     process_function(module, node.name, item, pkg_name, root)
 
 
