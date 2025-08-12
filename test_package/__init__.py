@@ -7,3 +7,6 @@ def foo(a = None):
 
 def bar(a = -1):
     return a
+
+def fox(b = 3, *, a = None):
+    return None
