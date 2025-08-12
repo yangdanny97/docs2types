@@ -1,5 +1,6 @@
 import ast
 import argparse
+import textwrap
 import os
 import sys
 import importlib
@@ -78,7 +79,7 @@ def get_source(mod: str, func: str) -> str | None:
             obj = getattr(module, func, None)
         if obj is None:
             return None
-        return inspect.getsource(obj)
+        return textwrap.dedent(inspect.getsource(obj))
     except Exception as e:
         print(e)
         return None
