@@ -6,7 +6,7 @@ import shutil
 TEST_CASES = sorted((Path("tests") / "test_cases").glob("case*"))
 
 
-@pytest.mark.parametrize("test_case", TEST_CASES)
+@pytest.mark.parametrize("test_case", TEST_CASES, ids=[str(x) for x in TEST_CASES])
 def test_rewrites(tmp_path: Path, test_case: Path) -> None:
     root = tmp_path / "test_package"
     root.mkdir()

@@ -43,14 +43,21 @@ class ParameterDefaultAdder(cst.CSTTransformer):
         if original_node.name.value != self.func_name:
             return updated_node
         new_params: list[Param] = []
+        new_kwonly_params: list[Param] = []
         for param in updated_node.params.params:
             if param.name.value == self.param_name and param.default:
                 new_param = param.with_changes(default=self.default)
                 new_params.append(new_param)
             else:
                 new_params.append(param)
+        for kwonly_param in updated_node.params.kwonly_params:
+            if kwonly_param.name.value == self.param_name and kwonly_param.default:
+                new_kwonly_param = kwonly_param.with_changes(default=self.default)
+                new_kwonly_params.append(new_kwonly_param)
+            else:
+                new_kwonly_params.append(kwonly_param)
         return updated_node.with_changes(
-            params=updated_node.params.with_changes(params=new_params)
+            params=updated_node.params.with_changes(params=new_params, kwonly_params=new_kwonly_params)
         )
 
 
